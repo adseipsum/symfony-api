@@ -11,6 +11,8 @@ use Symfony\Component\Config\Definition\Exception\Exception;
 use Symfony\Component\HttpFoundation\Request;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Rbl\CouchbaseBundle\CouchbaseService;
+use Symfony\Component\Security\Core\User\UserInterface;
+
 
 /**
  * @Route(service="app_bundle.campaign.controller")
@@ -36,7 +38,7 @@ class CampaignController extends Controller
      * @Method("POST")
      * @return ApiResponse
      */
-    public function upsertCampaign(Request $request)
+    public function upsertCampaign(Request $request, UserInterface $user)
     {
         $data = json_decode($request->getContent(), true);
         $this->checkCampaignId($data);
@@ -48,6 +50,7 @@ class CampaignController extends Controller
                 $object->setPostSubLinks(0);
             }else{
                 $object = new CbCampaign();
+                $object->setUserId($user->getId());
                 $object->setEnabled(true);
                 $object->setType($data['type']);
                 $object->setPosted(0);
@@ -95,7 +98,7 @@ class CampaignController extends Controller
      * @Method("GET")
      * @return ApiResponse
      */
-    public function getCampaignList()
+    public function getCampaignList(UserInterface $user)
     {
         try {
             $status = array(
@@ -112,6 +115,10 @@ class CampaignController extends Controller
                 $ret = [];
                 foreach($arrayOfObjects as $object) {
                     if($object->getType() != CbCampaign::TYPE_BACKLINKED){
+                        continue;
+                    }
+
+                    if(!in_array('ROLE_ADMIN', $user->getRoles()) && $object->getUserId() != $user->getId()){
                         continue;
                     }
 
@@ -158,7 +165,7 @@ class CampaignController extends Controller
      * @Method("POST")
      * @return ApiResponse
      */
-    public function removeCampaign(Request $request){
+    public function removeCampaign(Request $request, UserInterface $user){
 
         $data = json_decode($request->getContent(), true);
         $this->checkCampaignId($data);
@@ -166,6 +173,11 @@ class CampaignController extends Controller
         try {
             $campaignObject = $this->campaignModel->get($data['campaignId']);
             if ($campaignObject != null){
+
+                if(!in_array('ROLE_ADMIN', $user->getRoles()) && $campaignObject->getUserId() != $user->getId()){
+                    return ApiResponse::resultNotFound();
+                }
+
                 $campaignObject->setStatus(CbCampaign::STATUS_DELETED);
                 $this->campaignModel->upsert($campaignObject);
                 return ApiResponse::resultValue(true);
@@ -185,7 +197,7 @@ class CampaignController extends Controller
      * @Method("GET")
      * @return ApiResponse
      */
-    public function enableCampaign(Request $request)
+    public function enableCampaign(Request $request, UserInterface $user)
     {
         $data = $request->query->all();
 
@@ -195,6 +207,11 @@ class CampaignController extends Controller
 
         try {
             $campaignObject = $this->campaignModel->get($data['campaignId']);
+
+            if(!in_array('ROLE_ADMIN', $user->getRoles()) && $campaignObject->getUserId() != $user->getId()){
+                return ApiResponse::resultNotFound();
+            }
+
             $campaignObject->setEnabled(filter_var($data['enabled'], FILTER_VALIDATE_BOOLEAN));
             $this->campaignModel->upsert($campaignObject);
 
