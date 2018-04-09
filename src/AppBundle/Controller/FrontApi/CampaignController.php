@@ -68,7 +68,7 @@ class CampaignController extends Controller
 
                 if(isset($data['subLinks'])) foreach($data['subLinks'] as $key => $subLink){
                     $data['subLinks'][$key]['subLink'] = str_replace(self::HTTP_STRING, '', $subLink['subLink']);
-                    $data['subLinks'][$key]['subLinkKeywords'] = preg_split("/[," . PHP_EOL . "]+/", $subLink['subLinkKeywords']);
+                    $data['subLinks'][$key]['subLinkKeywords'] = array_map('trim', preg_split("/[," . PHP_EOL . "]+/", $subLink['subLinkKeywords']));
                 }
                 $object->setSubLinks($data['subLinks']);
 
