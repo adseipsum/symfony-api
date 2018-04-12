@@ -70,6 +70,8 @@ class RunCampaignSchedulerCommand extends ContainerAwareCommand
 
             if(!isset($blogObject)){
                 $output->writeln('No blogs ready for posting for campaign ' . $campaignObject->getObjectId());
+                $campaignObject->setNextPostingTime($campaignObject->getNextPostingTime() + 600);
+                $campaignModel->upsert($campaignObject);
                 return false;
             }
 
