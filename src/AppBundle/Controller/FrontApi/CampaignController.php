@@ -60,7 +60,7 @@ class CampaignController extends Controller
             }
 
             if($data['type'] == CbCampaign::TYPE_BACKLINKED){
-                $object->setMainDomain(str_replace(self::HTTP_STRING, '', $data['mainDomain']));
+                $object->setMainDomain($data['mainDomain']);
                 $object->setAdditionalKeysPercentage($data['additionalKeysPercentage']);
                 $object->setPostMainDomainLinks($data['postMainDomainLinks']);
                 $object->setPostSubLinks($data['postSubLinks']);
