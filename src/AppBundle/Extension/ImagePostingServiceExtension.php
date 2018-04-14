@@ -56,7 +56,7 @@ class ImagePostingServiceExtension
             ]);
 
             $imageRequest = array(
-                'blog_id' => 'all-blogs',
+                'blog_id' => $this->blogObject->getObjectId(),
                 'watermark' => $this->blogObject->getDomainName()
             );
 
