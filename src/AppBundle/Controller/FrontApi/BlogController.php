@@ -108,6 +108,7 @@ class BlogController extends Controller
                         'lastPostDate' => $object->getLastPostDate() ? $object->getLastPostDate()->getTimestamp() : -1,
                         'lastPostId' => $object->getLastPostId(),
                         'lastBacklinkedPostId' => $object->getLastBacklinkedPostId(),
+                        'isNeedRecoveryFromWebArchive' => $object->isNeedRecoveryFromWebArchive(),
                     );
 
                     /* @var $seoBlogDataObject CbSeoBlog */
@@ -337,7 +338,6 @@ class BlogController extends Controller
         }
 
         return ApiResponse::resultValue(true);
-
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -347,6 +347,47 @@ class BlogController extends Controller
         $exploded = explode($delimiters[0], $ready);
         $trimmed = array_map('trim', $exploded);
         return  $trimmed;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @Route("/blog/need_recovery", name="frontapi_block_need_recovery")
+     * @Method("POST")
+     * @param Request $request
+     * @return ApiResponse
+     */
+    public function needRecoveryDomain(Request $request)
+    {
+        try {
+            $isNeedRecovery = $request->request->get('is_need_recovery');
+            if ($isNeedRecovery === "true") {
+                $isNeedRecovery = true;
+            } else if ($isNeedRecovery === "false") {
+                $isNeedRecovery = false;
+            } else {
+                return ApiResponse::resultError(500, "Ivalid params");
+            }
+
+            $blogId = $request->request->get('blog_id');
+
+            /* @var $cb CouchbaseService */
+            $cb = $this->get('couchbase.connector');
+            $blogModel = new BlogModel($cb);
+
+            /* @var $obj CbBlog */
+            $obj = $blogModel->get($blogId);
+            if ($obj == null) {
+                return ApiResponse::resultNotFound();
+            }
+
+            $obj->setNeedRecoveryFromWebArchive($isNeedRecovery);
+            $blogModel->replace($obj);
+
+            return ApiResponse::resultOk();
+        } catch (Exception $e) {
+            return ApiResponse::resultError(500, $e->getMessage());
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
