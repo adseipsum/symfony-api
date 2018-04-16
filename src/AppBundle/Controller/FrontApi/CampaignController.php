@@ -227,6 +227,46 @@ class CampaignController extends Controller
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
+     * @Route("/campaign/tasks", name="frontapi_campaign_tasks")
+     * @param Request $request
+     * @Method("POST")
+     * @return ApiResponse
+     */
+    public function getTasks(Request $request, UserInterface $user)
+    {
+        if (!in_array('ROLE_ADMIN', $user->getRoles())) {
+            return ApiResponse::resultNotFound();
+        }
+
+        $data = $request->query->all();
+        $this->checkCampaignId($data);
+
+        try {
+            if (isset($data['campaignId']) && $data['campaignId']) {
+                $tasksModel = new TaskModel($this->cb);
+                $arrayOfObjects = $tasksModel->getTasksForCampaign($data['campaignId']);
+
+                if (!$arrayOfObjects){
+                    return ApiResponse::resultValue(false);
+                }
+
+                $ret = [];
+
+                if($arrayOfObjects) foreach($arrayOfObjects as $task){
+                    $ret[] = $task;
+                }
+                return new ApiResponse($ret);
+            }
+        } catch (Exception $e) {
+            return ApiResponse::resultError(500, $e->getMessage());
+        }
+
+        return ApiResponse::resultValue(true);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
      * @param array $data
      * @Method("GET")
      * @return ApiResponse
