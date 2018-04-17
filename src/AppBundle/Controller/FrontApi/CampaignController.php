@@ -5,6 +5,7 @@ namespace AppBundle\Controller\FrontApi;
 use Rbl\CouchbaseBundle\Entity\CbCampaign;
 use AppBundle\Extension\ApiResponse;
 use Rbl\CouchbaseBundle\Model\CampaignModel;
+use Rbl\CouchbaseBundle\Model\TaskModel;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\Config\Definition\Exception\Exception;
@@ -99,8 +100,14 @@ class CampaignController extends Controller
      * @Method("GET")
      * @return ApiResponse
      */
-    public function getCampaignList(UserInterface $user)
+    public function getCampaignList(Request $request, UserInterface $user)
     {
+        $data = $request->query->all();
+
+        if(!isset($data['type']) && ($data['type'] != CbCampaign::TYPE_BACKLINKED && $data['type'] !=  CbCampaign::TYPE_REGULAR)){
+            return ApiResponse::resultNotFound();
+        }
+
         try {
             $status = array(
                 CbCampaign::STATUS_READY,
@@ -115,7 +122,7 @@ class CampaignController extends Controller
 
                 $ret = [];
                 foreach($arrayOfObjects as $object) {
-                    if($object->getType() != CbCampaign::TYPE_BACKLINKED){
+                    if($object->getType() != $data['type']){
                         continue;
                     }
 
@@ -134,7 +141,8 @@ class CampaignController extends Controller
                         'created' => $object->getCreated()->format('d-m-Y'),
                         'type' => $object->getType(),
                         'blogs' => $object->getBlogs(),
-                        'blogTags' => $object->getBlogTags()
+                        'blogTags' => $object->getBlogTags(),
+                        'errors' => $object->getErrors()
                     );
 
                     if($object->getType() == CbCampaign::TYPE_BACKLINKED){
