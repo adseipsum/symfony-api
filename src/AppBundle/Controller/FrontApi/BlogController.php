@@ -193,7 +193,8 @@ class BlogController extends Controller
                             'parseStatus' => $parseEndToken->getParseStatus(),
                             'parseMessage' => $parseEndToken->getParseMessage(),
                             'parseDate' => $parseEndToken->getParseId(),
-                            'messageUrl' => $parseEndToken->getMessageUrl()
+                            'messageUrl' => $parseEndToken->getMessageUrl(),
+                            'parserObjectCount' => count($parseEndTockenModel->getAllObjectIdByBlogId($id))
                         );
                         $blog = array_merge($blog, $parseInfo);
                     }
@@ -403,8 +404,8 @@ class BlogController extends Controller
                 if ($oldVal) {
                     $parseEndTockenModel = new ParseEndTockenModel($cb);
                     $objectIds = $parseEndTockenModel->getAllObjectIdByBlogId($blogId);
-                    if (count($objectIds) > 0) {
-                        $parseEndTockenModel->remove($objectIds);
+                    foreach($objectIds as $objectId) {
+                        $parseEndTockenModel->remove($objectId);
                     }
                 }
 
