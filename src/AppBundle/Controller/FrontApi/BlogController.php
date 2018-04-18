@@ -4,9 +4,11 @@ namespace AppBundle\Controller\FrontApi;
 
 use Rbl\CouchbaseBundle\Entity\CbBlog;
 use Rbl\CouchbaseBundle\Entity\CbSeoBlog;
+use Rbl\CouchbaseBundle\Entity\CbParseEndToken;
 use AppBundle\Extension\ApiResponse;
 use Rbl\CouchbaseBundle\Model\BlogModel;
 use Rbl\CouchbaseBundle\Model\SeoBlogModel;
+use Rbl\CouchbaseBundle\Model\ParseEndTockenModel;
 use Rbl\CouchbaseBundle\CouchbaseService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -80,6 +82,8 @@ class BlogController extends Controller
         $model = new BlogModel($cb);
 
         $seoModel = new SeoBlogModel($cb);
+
+        $parseEndTockenModel = new ParseEndTockenModel($cb);
 
         try {
 
@@ -179,6 +183,18 @@ class BlogController extends Controller
                             'proxyIp' => $proxyIp,
                         );
                         $blog = array_merge($blog, $seoData);
+                    }
+
+                    /* @var $parseEndToken CbParseEndToken */
+                    $parseEndToken = $parseEndTockenModel->get('parse-end-' . $id);
+                    if ($parseEndToken) {
+                        $parseInfo = array(
+                            'parseStatus' => $parseEndToken->getParseStatus(),
+                            'parseMessage' => $parseEndToken->getParseMessage(),
+                            'parseDate' => $parseEndToken->getParseId(),
+                            'messageUrl' => $parseEndToken->getMessageUrl()
+                        );
+                        $blog = array_merge($blog, $parseInfo);
                     }
 
                     $ret[] = $blog;
@@ -381,8 +397,19 @@ class BlogController extends Controller
                 return ApiResponse::resultNotFound();
             }
 
-            $obj->setNeedRecoveryFromWebArchive($isNeedRecovery);
-            $blogModel->replace($obj);
+            $oldVal = $obj->isNeedRecoveryFromWebArchive();
+            if ($oldVal != $isNeedRecovery) {
+                if ($oldVal) {
+                    $parseEndTockenModel = new ParseEndTockenModel($cb);
+                    $objectIds = $parseEndTockenModel->getAllObjectIdByBlogId($blogId);
+                    if (count($objectIds) > 0) {
+                        $parseEndTockenModel->remove($objectIds);
+                    }
+                }
+
+                $obj->setNeedRecoveryFromWebArchive($isNeedRecovery);
+                $blogModel->replace($obj);
+            }
 
             return ApiResponse::resultOk();
         } catch (Exception $e) {
