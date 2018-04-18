@@ -62,6 +62,7 @@ class CampaignController extends Controller
 
             if($data['type'] == CbCampaign::TYPE_BACKLINKED){
                 $object->setMainDomain($data['mainDomain']);
+                $object->setNoFollowPercentage($data['noFollowPercentage']);
                 $object->setAdditionalKeysPercentage($data['additionalKeysPercentage']);
                 $object->setPostMainDomainLinks($data['postMainDomainLinks']);
                 $object->setPostSubLinks($data['postSubLinks']);
@@ -149,6 +150,7 @@ class CampaignController extends Controller
                         $campaign['mainDomain'] = $object->getMainDomain();
                         $campaign['mainKeywords'] = $object->getMainKeywords();
                         $campaign['subLinks'] = $object->getSubLinks();
+                        $campaign['noFollowPercentage'] = $object->getNoFollowPercentage();
                         $campaign['additionalKeysPercentage'] = $object->getAdditionalKeysPercentage();
                         $campaign['postMainDomainLinks'] = $object->getPostMainDomainLinks();
                         $campaign['postSubLinks'] = $object->getPostSubLinks();
