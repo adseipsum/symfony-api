@@ -2,6 +2,8 @@
 
 namespace AppBundle\Controller\FrontApi;
 
+use Rbl\CouchbaseBundle\Model\BlogModel;
+use Rbl\CouchbaseBundle\Entity\CbBlog;
 use Rbl\CouchbaseBundle\Entity\CbCampaign;
 use AppBundle\Extension\ApiResponse;
 use Rbl\CouchbaseBundle\Model\CampaignModel;
@@ -251,6 +253,8 @@ class CampaignController extends Controller
         $data = $request->query->all();
         $this->checkCampaignId($data);
 
+        $blogModel = new BlogModel($this->cb);
+
         try {
             if (isset($data['campaignId']) && $data['campaignId']) {
                 $tasksModel = new TaskModel($this->cb);
@@ -263,7 +267,14 @@ class CampaignController extends Controller
                 $ret = [];
 
                 if($arrayOfObjects) foreach($arrayOfObjects as $task){
-                    $ret[] = $task;
+                    $blogObject = $blogModel->get($task->getBlogId());
+                    $ret[] = array(
+                        'id' => $task->getObjectId(),
+                        'created' => $task->getRecordCreated()->format('d-m-Y h:i:s'),
+                        'status' => $task->getStatus(),
+                        'blogId' => $blogObject->getDomainName(),
+                        'link' => $task->getPostLink(),
+                    );
                 }
                 return new ApiResponse($ret);
             }
