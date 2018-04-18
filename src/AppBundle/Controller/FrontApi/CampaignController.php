@@ -2,9 +2,12 @@
 
 namespace AppBundle\Controller\FrontApi;
 
+use Rbl\CouchbaseBundle\Model\BlogModel;
+use Rbl\CouchbaseBundle\Entity\CbBlog;
 use Rbl\CouchbaseBundle\Entity\CbCampaign;
 use AppBundle\Extension\ApiResponse;
 use Rbl\CouchbaseBundle\Model\CampaignModel;
+use Rbl\CouchbaseBundle\Model\TaskModel;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\Config\Definition\Exception\Exception;
@@ -61,6 +64,7 @@ class CampaignController extends Controller
 
             if($data['type'] == CbCampaign::TYPE_BACKLINKED){
                 $object->setMainDomain($data['mainDomain']);
+                $object->setNoFollowPercentage($data['noFollowPercentage']);
                 $object->setAdditionalKeysPercentage($data['additionalKeysPercentage']);
                 $object->setPostMainDomainLinks($data['postMainDomainLinks']);
                 $object->setPostSubLinks($data['postSubLinks']);
@@ -99,8 +103,14 @@ class CampaignController extends Controller
      * @Method("GET")
      * @return ApiResponse
      */
-    public function getCampaignList(UserInterface $user)
+    public function getCampaignList(Request $request, UserInterface $user)
     {
+        $data = $request->query->all();
+
+        if(!isset($data['type']) && ($data['type'] != CbCampaign::TYPE_BACKLINKED && $data['type'] !=  CbCampaign::TYPE_REGULAR)){
+            return ApiResponse::resultNotFound();
+        }
+
         try {
             $status = array(
                 CbCampaign::STATUS_READY,
@@ -115,7 +125,7 @@ class CampaignController extends Controller
 
                 $ret = [];
                 foreach($arrayOfObjects as $object) {
-                    if($object->getType() != CbCampaign::TYPE_BACKLINKED){
+                    if($object->getType() != $data['type']){
                         continue;
                     }
 
@@ -134,13 +144,15 @@ class CampaignController extends Controller
                         'created' => $object->getCreated()->format('d-m-Y'),
                         'type' => $object->getType(),
                         'blogs' => $object->getBlogs(),
-                        'blogTags' => $object->getBlogTags()
+                        'blogTags' => $object->getBlogTags(),
+                        'errors' => $object->getErrors()
                     );
 
                     if($object->getType() == CbCampaign::TYPE_BACKLINKED){
                         $campaign['mainDomain'] = $object->getMainDomain();
                         $campaign['mainKeywords'] = $object->getMainKeywords();
                         $campaign['subLinks'] = $object->getSubLinks();
+                        $campaign['noFollowPercentage'] = $object->getNoFollowPercentage();
                         $campaign['additionalKeysPercentage'] = $object->getAdditionalKeysPercentage();
                         $campaign['postMainDomainLinks'] = $object->getPostMainDomainLinks();
                         $campaign['postSubLinks'] = $object->getPostSubLinks();
@@ -222,6 +234,55 @@ class CampaignController extends Controller
 
         return ApiResponse::resultValue(true);
 
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @Route("/campaign/tasks", name="frontapi_campaign_tasks")
+     * @param Request $request
+     * @Method("POST")
+     * @return ApiResponse
+     */
+    public function getTasks(Request $request, UserInterface $user)
+    {
+        if (!in_array('ROLE_ADMIN', $user->getRoles())) {
+            return ApiResponse::resultNotFound();
+        }
+
+        $data = $request->query->all();
+        $this->checkCampaignId($data);
+
+        $blogModel = new BlogModel($this->cb);
+
+        try {
+            if (isset($data['campaignId']) && $data['campaignId']) {
+                $tasksModel = new TaskModel($this->cb);
+                $arrayOfObjects = $tasksModel->getTasksForCampaign($data['campaignId']);
+
+                if (!$arrayOfObjects){
+                    return ApiResponse::resultValue(false);
+                }
+
+                $ret = [];
+
+                if($arrayOfObjects) foreach($arrayOfObjects as $task){
+                    $blogObject = $blogModel->get($task->getBlogId());
+                    $ret[] = array(
+                        'id' => $task->getObjectId(),
+                        'created' => $task->getRecordCreated()->format('d-m-Y h:i:s'),
+                        'status' => $task->getStatus(),
+                        'blogId' => $blogObject->getDomainName(),
+                        'link' => $task->getPostLink(),
+                    );
+                }
+                return new ApiResponse($ret);
+            }
+        } catch (Exception $e) {
+            return ApiResponse::resultError(500, $e->getMessage());
+        }
+
+        return ApiResponse::resultValue(true);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

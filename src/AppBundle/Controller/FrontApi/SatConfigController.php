@@ -19,9 +19,6 @@ class SatConfigController extends Controller
     private $cb;
     private $satConfigModel;
 
-    //here is temporarly solution, we need to realize if config will be connected to user
-    const SAT_CONFIG = 'satconfig-1';
-
     public function __construct(CouchbaseService $cb)
     {
         $this->cb = $cb;
@@ -39,7 +36,7 @@ class SatConfigController extends Controller
         $data = json_decode($request->getContent(), true);
         $additionalKeywords = isset($data['additionalKeywords']) && $data['additionalKeywords'] ? array_map('trim', explode(',', $data['additionalKeywords'])) : array();
         try {
-            $satConfigObject = $this->satConfigModel->get(self::SAT_CONFIG);
+            $satConfigObject = $this->satConfigModel->get(CbSatConfig::SAT_CONFIG);
             $satConfigObject->setAdditionalKeywords($additionalKeywords);
             $this->satConfigModel->upsert($satConfigObject);
 

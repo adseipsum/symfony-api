@@ -100,6 +100,11 @@ class PostingServiceExtension
             if(!isset($response['code'])){
                 $blogObject->setLastPostDate(new \DateTime());
                 $blogObject->setLastPostId($response['id']);
+
+                if(isset($response['link'])){
+                    $this->taskObject->setPostLink($response['link']);
+                    $this->taskModel->upsert($this->taskObject);
+                }
             }else{
                 $blogObject->setLastErrorMessage($response['code']);
             }

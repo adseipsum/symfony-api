@@ -113,6 +113,7 @@ class BlogController extends Controller
                         'lastPostId' => $object->getLastPostId(),
                         'lastBacklinkedPostId' => $object->getLastBacklinkedPostId(),
                         'isNeedRecoveryFromWebArchive' => $object->isNeedRecoveryFromWebArchive(),
+                        'lastErrorMessage' => $object->getLastErrorMessage(),
                     );
 
                     /* @var $seoBlogDataObject CbSeoBlog */
