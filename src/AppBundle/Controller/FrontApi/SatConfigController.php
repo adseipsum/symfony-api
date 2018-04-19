@@ -56,7 +56,7 @@ class SatConfigController extends Controller
     public function showSatConfig()
     {
         try {
-            $satConfigObject = $this->satConfigModel->get(self::SAT_CONFIG);
+            $satConfigObject = $this->satConfigModel->get(CbSatConfig::SAT_CONFIG);
             if (!$satConfigObject) {
                 return ApiResponse::resultNotFound();
             }
